@@ -1,0 +1,38 @@
+name: Azure Databricks Access Token
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v2
+
+    - name: Set up Azure CLI
+      uses: azure/cli@v1
+      with:
+        azcliversion: 2.33.0
+
+    - name: Log in to Azure
+      run: |
+        az login --service-principal -u ${{ secrets.AZURE_CLIENT_ID }} -p ${{ secrets.AZURE_CLIENT_SECRET }} --tenant ${{ secrets.AZURE_TENANT_ID }}
+    
+    - name: Get Databricks Token
+      run: |
+        # Replace 'RESOURCE_ID' and 'WORKSPACE_URL' with your Databricks Resource ID and Workspace URL
+        az databricks token create --resource-id ${{ secrets.DATABRICKS_RESOURCE_ID }} --workspace-url ${{ secrets.DATABRICKS_WORKSPACE_URL }} --output json > databricks_token.json
+
+    - name: Extract Token
+      id: extract_token
+      run: |
+        echo "::set-output name=token::$(cat databricks_token.json | jq -r '.token_value')"
+
+    - name: Use the Databricks Token
+      run: |
+        # Use the generated Databricks token as needed, for example, in your application or deployment script
+        echo "Databricks Token: ${{ steps.extract_token.outputs.token }}"
